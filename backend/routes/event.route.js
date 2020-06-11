@@ -19,7 +19,7 @@ router.route('/create-event').post((req, res, next) => {
 
 // READ Events
 router.route('/visitor/:id').get((req, res) => {
-  eventSchema.findByVisitorId(req.params.id, (error, data) => {
+  eventSchema.find({visitorId : req.params.id}, (error, data) => {
     if (error) {
       return next(error);
     } else {

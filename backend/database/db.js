@@ -1,3 +1,3 @@
 module.exports = {
-  db: 'mongodb://localhost:27017/mazdb'
+  db: 'mongodb://skc3596:skc12345@ds151289.mlab.com:51289/mazdb'
 };

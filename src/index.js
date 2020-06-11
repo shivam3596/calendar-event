@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from "react-router-dom";
 import './styles/tailwind.css';
-import './javascripts/calendar.js';
 import Calendar from './Calendar';
 import * as serviceWorker from './serviceWorker';
 

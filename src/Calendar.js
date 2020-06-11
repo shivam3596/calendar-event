@@ -1,191 +1,267 @@
 import React, {Component} from 'react';
-import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import Cookies from 'universal-cookie';
 import axios from 'axios';
+const cookies = new Cookies();
 
 export default class Calendar extends Component {
 
   constructor(props) {
-    super(props)
-
-    this.onChangeTitle = this.onChangeTitle.bind(this);
-    this.onChangeDate = this.onChangeDate.bind(this);
-    this.onChangeRepeat = this.onChangeRepeat.bind(this);
-    this.onSubmit = this.onSubmit.bind(this);
-
+    super(props);
     this.state = {
+      submitDone: false,
+      openModal: false,
+      weekDates: null,
       title: null,
       date: null,
+      time: null,
       visitorId: null,
-      repeat: null,
-      events: null
+      repeat: false,
+      events: []
     }
   }
 
+  getWeek(fromDate) {
+    let sunday = new Date(fromDate.setDate(fromDate.getDate() - fromDate.getDay()));
+    let result = [new Date(sunday).toDateString()];
+    while (sunday.setDate(sunday.getDate() + 1) && sunday.getDay() !== 0) {
+      result.push(new Date(sunday).toDateString());
+    }
+    return result;
+  }
+
+
   componentDidMount() {
-    axios.get('http://localhost:4000/events/visitor/' + '1234')
-      .then(res => {
-        this.setState({
-          events: res.data
-        });
-      })
-      .catch((error) => {
-        console.log(error);
-      })
+    let visitorId = cookies.get('visitorId');
+    if(visitorId == null || visitorId === ""){
+      let date = new Date();
+      let newDateTime = date.getTime();
+      cookies.set('visitorId', newDateTime, { path: '/' });
+    }
+    axios.get('http://localhost:4000/events/visitor/' + visitorId).then(res => {
+      this.setState({
+        events: res.data
+      });
+      console.log(res.data);
+    }).catch((error) => {
+      console.log(error);
+    });
   }
 
   onChangeTitle(e) {
     this.setState({title: e.target.value});
   }
 
-  onChangeDate(e) {
-    this.setState({date: e.target.value});
+  setDate(selectedDate) {
+    this.setState({date: selectedDate});
+  }
+
+  setTime(selectedTime) {
+    this.setState({time: selectedTime});
   }
 
   onChangeRepeat(e) {
-    this.setState({repeat: e.target.value});
+    this.setState({repeat: e.target.checked});
+  }
+
+  openEventModal(e, date, time) {
+    this.setState({submitDone: false})
+    this.setState({openModal: true});
+    this.setDate(date);
+    this.setTime(time);
+  }
+
+  closeEventModal(e) {
+    this.setState({openModal: false});
   }
 
   onSubmit(e) {
+    let that = this;
     e.preventDefault();
 
     const eventObject = {
       title: this.state.title,
       date: this.state.date,
-      visitorId: this.state.visitorId,
+      time: this.state.time,
+      visitorId: cookies.get('visitorId'),
       repeat: this.state.repeat
     };
-    axios.post('http://localhost:4000/events/create-or-update-event', eventObject).then(res => console.log(res.data));
+    let dateTimeElement = this.state.date + this.state.time;
+    let parentDiv = document.getElementById(dateTimeElement);
+    axios.post('http://localhost:4000/events/create-event', eventObject).then(res =>
+      that.closeEventModal(),
+      parentDiv.innerHTML = parentDiv.innerHTML + '<div class="px-2 py-1 rounded-lg mt-1 overflow-hidden border"><p class="text-sm truncate leading-tight bg-green-200">'+ this.state.title +'</p></div>',
+      that.setState({submitDone: true})
+    );
   }
 
   render() {
+    let today = new Date();
+    let dd = today.getDate();
+    let mm = today.getMonth() + 1;
+    let yyyy = today.getFullYear();
+
+    if (dd < 10) {
+      dd = '0' + dd;
+    }
+
+    if (mm < 10) {
+      mm = '0' + mm;
+    }
+
+    today = mm + '/' + dd + '/' + yyyy;
+
+    let week = this.getWeek(new Date(today));
+    let weekLayout = [];
+    for (let i = 0; week.length > i; i++) {
+      let data = week[i];
+      weekLayout.push(data.toString());
+    }
+
+    let hours = ['1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM',
+    '8 PM', '9 PM', '10 PM', '11 PM' , '12 AM'];
+
     return (
       <div className="App" >
+        <div className="bg-indigo-900 text-center py-4 lg:px-4">
+          <div className="p-2 bg-indigo-800 items-center text-indigo-100 leading-none lg:rounded-full flex lg:inline-flex" role="alert">
+            <span className="font-semibold mr-2 text-left flex-auto">Welcome ! Click on </span>
+            <span className="flex rounded-full bg-indigo-500 uppercase px-2 py-1 text-xs font-bold mr-3">Time</span>
+            <span className="font-semibold mr-2 text-left flex-auto"> to add an event</span>
+          </div>
+        </div>
         <div>
-          <div className="antialiased sans-serif bg-gray-100 h-screen">
+          <div className="antialiased sans-serif bg-gray-100">
             <div>
               <div className="container mx-auto px-4 py-2 md:py-24">
 
                 <div className="font-bold text-gray-800 text-xl mb-4">
-                  Calendar Events
+                  Week Calendar
                 </div>
 
                 <div className="bg-white rounded-lg shadow overflow-hidden">
 
                   <div className="flex items-center justify-between py-2 px-6">
                     <div>
-                      <span className="text-lg font-bold text-gray-800"></span>
-                      <span className="ml-1 text-lg text-gray-600 font-normal"></span>
-                    </div>
-                    <div className="border rounded-lg px-1" style={{paddingTop: '2px'}}>
-                      <button
-                        type="button"
-                        className="leading-none rounded-lg transition ease-in-out duration-100 inline-flex cursor-pointer hover:bg-gray-200 p-1 items-center">
-                        <svg className="h-6 w-6 text-gray-500 inline-flex leading-none"  fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                      </button>
-                      <div className="border-r inline-flex h-6"></div>
-                      <button
-                        type="button"
-                        className="leading-none rounded-lg transition ease-in-out duration-100 inline-flex items-center cursor-pointer hover:bg-gray-200 p-1">
-                        <svg className="h-6 w-6 text-gray-500 inline-flex leading-none"  fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                      </button>
+                      <span className="text-lg font-bold text-gray-800">{this.state.currentMonth}</span>
+                      <span className="ml-1 text-lg text-gray-600 font-normal">{this.state.currentYear}</span>
                     </div>
                   </div>
 
                   <div className="-mx-1 -mb-1">
-                    <div className="flex flex-wrap" style={{marginBottom: '-40px'}}>
-                      <template>
-                        <div style={{width: '14.26%'}} className="px-2 py-2">
-                          <div
-                            className="text-gray-600 text-sm uppercase tracking-wide font-bold text-center"></div>
-                        </div>
-                      </template>
-                    </div>
+                    <div className="flex flex-wrap">
+                      {
+                        weekLayout.map((day, index) => {
+                          let splitDate = day.split(' ');
+                          return (
+                            <div key={index} style={{width: '14.26%'}} className="px-2 py-2">
+                              <div className="text-gray-600 text-sm uppercase tracking-wide font-bold text-center">{splitDate[0]}</div>
+                              <div className="text-gray-800 text-md uppercase tracking-wide font-bold text-center mb-4">{splitDate[1]  + " " + splitDate[2]}</div>
+                              <div>
+                                {
+                                  hours.map((hour, index) => {
+                                    return (
+                                      <div key={index} className="px-4 pt-2 border-r border-b relative rounded-lg shadow mb-2">
+                                        <div onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }} className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white hover:bg-blue-200">{hour}</div>
+                                        <div style={{height: '80px'}} className="overflow-y-auto mt-1" id={day+hour}>
+                                          {
+                                            this.state.events.map((event, index) => {
+                                              var date = new Date(event.date);
+                                              if(date.toString().split(' ')[2] === day.split(' ')[2] && event.time === hour){
+                                                return(
+                                                  <div key={index} className="px-2 py-1 rounded-lg mt-1 overflow-hidden border">
+                                                    <p className="text-sm truncate leading-tight">{event.title}</p>
+                                                  </div>
+                                                );
+                                              } else {
+                                                return null;
+                                              }
+                                            })
+                                          }
 
-                    <div className="flex flex-wrap border-t border-l">
-                      <template>
-                        <div
-                          style={{width: '14.28%', height: '120px'}}
-                          className="text-center border-r border-b px-4 pt-2"
-                        ></div>
-                      </template>
-                      <template>
-                        <div style={{width: '14.28%', height: '120px'}} className="px-4 pt-2 border-r border-b relative">
-                          <div
-                            className="inline-flex w-6 h-6 items-center justify-center cursor-pointer text-center leading-none rounded-full transition ease-in-out duration-100"
-                          ></div>
-                          <div style={{height: '80px'}}className="overflow-y-auto mt-1">
-                            <div
-                              className="absolute top-0 right-0 mt-2 mr-2 inline-flex items-center justify-center rounded-full text-sm w-6 h-6 bg-gray-700 text-white leading-none">
-                            </div>
-
-                            <template>
-                              <div
-                                className="px-2 py-1 rounded-lg mt-1 overflow-hidden border"
-                              >
-                                <p className="text-sm truncate leading-tight"></p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                                }
                               </div>
-                            </template>
-                          </div>
-                        </div>
-                      </template>
+                            </div>
+                          );
+                        })
+                      }
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{backgroundColor: 'rgba(0, 0, 0, 0.8)', display: 'none'}} className="fixed z-40 top-0 right-0 left-0 bottom-0 h-full w-full">
-                <div className="p-4 max-w-xl mx-auto relative absolute left-0 right-0 overflow-hidden mt-24">
-                  <div className="shadow absolute right-0 top-0 w-10 h-10 rounded-full bg-white text-gray-500 hover:text-gray-800 inline-flex items-center justify-center cursor-pointer">
-                    <svg className="fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                      <path
-                        d="M16.192 6.344L11.949 10.586 7.707 6.344 6.293 7.758 10.535 12 6.293 16.242 7.707 17.656 11.949 13.414 16.192 17.656 17.606 16.242 13.364 12 17.606 7.758z" />
-                    </svg>
-                  </div>
-
-                  <div className="shadow w-full rounded-lg bg-white overflow-hidden w-full block p-8">
-
-                    <h2 className="font-bold text-2xl mb-6 text-gray-800 border-b pb-2">Add Event Details</h2>
-
-                    <div className="mb-4">
-                      <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Event title</label>
-                      <input className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text"/>
+              {this.state.openModal === true ?
+                <div style={{backgroundColor: 'rgba(0, 0, 0, 0.8)'}} className="fixed z-40 top-0 right-0 left-0 bottom-0 h-full w-full">
+                  <div className="p-4 max-w-xl mx-auto relative absolute left-0 right-0 overflow-hidden mt-24">
+                    <div onClick={e => { this.closeEventModal(e); e.preventDefault(); }} className="shadow absolute right-0 top-0 w-10 h-10 rounded-full bg-white text-gray-500 hover:text-gray-800 inline-flex items-center justify-center cursor-pointer">
+                      <svg className="fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path
+                          d="M16.192 6.344L11.949 10.586 7.707 6.344 6.293 7.758 10.535 12 6.293 16.242 7.707 17.656 11.949 13.414 16.192 17.656 17.606 16.242 13.364 12 17.606 7.758z" />
+                      </svg>
                     </div>
 
-                    <div className="mb-4">
-                      <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Event date</label>
-                      <input className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text" readOnly/>
-                    </div>
+                    <div className="shadow w-full rounded-lg bg-white overflow-hidden w-full block p-8">
 
-                    <div className="inline-block w-64 mb-4">
-                      <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Select a theme</label>
-                      <div className="relative">
-                        <select className="block appearance-none w-full bg-gray-200 border-2 border-gray-200 hover:border-gray-500 px-4 py-2 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-500 text-gray-700">
+                      <h2 className="font-bold text-2xl mb-6 text-gray-800 border-b pb-2">Add Event Details</h2>
 
-
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
+                      <div className="mb-4">
+                        <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Event title</label>
+                        <input onChange={e => { this.onChangeTitle(e); }} className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text"/>
                       </div>
-                    </div>
 
-                    <div className="mt-8 text-right">
-                      <button type="button" className="bg-white hover:bg-gray-100 text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm mr-2">
-                        Cancel
-                      </button>
-                      <button type="button" className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 border border-gray-700 rounded-lg shadow-sm">
-                        Save Event
-                      </button>
+                      <div className="mb-4">
+                        <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Event date</label>
+                        <input value={this.state.date} className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text" readOnly/>
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Event time</label>
+                        <input value={this.state.time} className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text" readOnly/>
+                      </div>
+
+                      <label className="flex justify-start items-start">
+                        <div className="bg-white border-2 rounded border-gray-400 w-6 h-6 flex flex-shrink-0 justify-center items-center mr-2 focus-within:border-blue-500">
+                          <input onChange={e => { this.onChangeRepeat(e); }} type="checkbox" className="opacity-0 absolute"/>
+                          <svg className="fill-current hidden w-4 h-4 text-green-500 pointer-events-none" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z"/></svg>
+                        </div>
+                        <div className="select-none">Repeats every day</div>
+                      </label>
+
+                      <div className="mt-8 text-right">
+                        <button onClick={e => { this.closeEventModal(e); e.preventDefault(); }} type="button" className="bg-white hover:bg-gray-100 text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm mr-2">
+                          Cancel
+                        </button>
+                        <button onClick={e => { this.onSubmit(e);}} type="button" className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 border border-gray-700 rounded-lg shadow-sm">
+                          Save Event
+                        </button>
+                      </div>
+
                     </div>
 
                   </div>
-
                 </div>
-              </div>
+                :null
+              }
+
+              {
+                this.state.submitDone ?
+                  <div className="alert-toast fixed bottom-0 right-0 m-8 w-5/6 md:w-full max-w-sm">
+                    <input type="checkbox" className="hidden" id="footertoast"/>
+
+                    <label className="close cursor-pointer flex items-start justify-between w-full p-2 bg-green-500 h-24 rounded shadow-lg text-white" title="close" htmlFor="footertoast">
+                      Event added successfully!
+
+                      <svg className="fill-current text-white" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                        <path d="M14.53 4.53l-1.06-1.06L9 7.94 4.53 3.47 3.47 4.53 7.94 9l-4.47 4.47 1.06 1.06L9 10.06l4.47 4.47 1.06-1.06L10.06 9z"></path>
+                      </svg>
+                    </label>
+                  </div>
+                :null
+              }
+
             </div>
           </div>
         </div>

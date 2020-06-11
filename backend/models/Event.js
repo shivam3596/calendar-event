@@ -8,6 +8,9 @@ let eventSchema = new Schema({
   date: {
     type: Date
   },
+  time: {
+    type: String
+  },
   visitorId: {
     type: Number
   },
