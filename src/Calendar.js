@@ -123,6 +123,37 @@ export default class Calendar extends Component {
     });
   }
 
+  allowDrop(e) {
+    e.preventDefault();
+  }
+
+  drag(e, givenDay, givenHour) {
+    e.dataTransfer.setData("text", e.target.id);
+    e.dataTransfer.setData("movingId", document.getElementById(givenDay + givenHour).firstChild.getElementsByTagName('p')[0].id);
+  }
+
+  drop(e, givenDay, givenHour) {
+    e.preventDefault();
+    let parentDiv = document.getElementById(givenDay + givenHour);
+    if(parentDiv.innerHTML === ""){
+      let data = e.dataTransfer.getData("text");
+      let movingId = e.dataTransfer.getData("movingId");
+      let targetElement = document.getElementById(e.target.id);
+      if(targetElement !== null){
+        targetElement.innerHTML = document.getElementById(data).innerHTML;
+        document.getElementById(data).innerHTML = '';
+        axios.put('http://localhost:4000/events/update-event/' + movingId, {date: givenDay, time: givenHour})
+        .then((res) => {
+          alert('Event Updated')
+        }).catch((error) => {
+          console.log(error)
+        });
+      }
+    }else{
+      alert('Drop not allowed on scheduled event.');
+    }
+  }
+
   render() {
     let today = new Date();
     let dd = today.getDate();
@@ -189,13 +220,13 @@ export default class Calendar extends Component {
                                     return (
                                       <div key={index} className="px-4 pt-2 border-r border-b relative rounded-lg shadow mb-2 hover:bg-blue-200 cursor-pointer" onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }}>
                                         <div className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white">{hour}</div>
-                                        <div style={{height: '80px'}} className="overflow-y-auto mt-1" id={day+hour}>
+                                        <div style={{height: '80px'}} data-time={hour} data-date={day} className="overflow-y-auto mt-1" id={day+hour} onDrop={e => { this.drop(e, day, hour); }} onDragOver={ e=> { this.allowDrop(e);}} onDragStart={e=> { this.drag(e, day, hour)}} draggable="true" >
                                           {
                                             this.state.events.map((event, index) => {
                                               var date = new Date(event.date);
                                               if(date.toString().split(' ')[2] === day.split(' ')[2] && event.time === hour){
                                                 return(
-                                                  <div key={index} className="px-2 py-1 rounded-lg mt-1 overflow-hidden border">
+                                                  <div key={index} className="px-2 py-1 rounded-lg mt-1 overflow-hidden border list>">
                                                     <p id={event._id} data-checked={event.repeat} data-title={event.title} className="text-sm truncate leading-tight" onClick={e => { this.openEventItemModal(e, day, hour, event.title); e.preventDefault(); }}>{event.title}</p>
                                                   </div>
                                                 );
@@ -204,7 +235,6 @@ export default class Calendar extends Component {
                                               }
                                             })
                                           }
-
                                         </div>
                                       </div>
                                     );

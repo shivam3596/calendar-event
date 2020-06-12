@@ -30,8 +30,8 @@ router.route('/visitor/:id').get((req, res) => {
 
 // Update Event
 router.route('/update-event/:id').put((req, res, next) => {
-  eventSchema.findByIdAndUpdate(req.params.id, {
-    $set: req.body
+  eventSchema.findByIdAndUpdate({_id: req.params.id}, {
+    $set: {date: req.body.date, time: req.body.time}
   }, (error, data) => {
     if (error) {
       return next(error);
