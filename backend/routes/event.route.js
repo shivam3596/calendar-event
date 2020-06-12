@@ -28,18 +28,6 @@ router.route('/visitor/:id').get((req, res) => {
   })
 })
 
-// Get Single Event
-router.route('/edit-event/:id').get((req, res) => {
-  eventSchema.findById(req.params.id, (error, data) => {
-    if (error) {
-      return next(error);
-    } else {
-      res.json(data);
-    }
-  })
-})
-
-
 // Update Event
 router.route('/update-event/:id').put((req, res, next) => {
   eventSchema.findByIdAndUpdate(req.params.id, {

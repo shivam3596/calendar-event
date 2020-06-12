@@ -8,10 +8,12 @@ export default class Calendar extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      selectedEventId: null,
       submitDone: false,
       openModal: false,
+      openEventModal: false,
       weekDates: null,
-      title: null,
+      title: "",
       date: null,
       time: null,
       visitorId: null,
@@ -64,14 +66,31 @@ export default class Calendar extends Component {
   }
 
   openEventModal(e, date, time) {
+    let dateTimeElement = date + time;
+    let parentDiv = document.getElementById(dateTimeElement);
+    if(parentDiv.innerHTML === ""){
+      this.setState({openModal: true});
+    }
     this.setState({submitDone: false})
-    this.setState({openModal: true});
+    this.setDate(date);
+    this.setTime(time);
+  }
+
+  openEventItemModal(e, date, time, title) {
+    this.setState({selectedEventId: e.target.id});
+    this.setState({openEventModal: true});
+    this.setState({title: e.target.getAttribute('data-title')});
+    this.setState({repeat: e.target.getAttribute('data-checked')});
+    this.setState({submitDone: false});
     this.setDate(date);
     this.setTime(time);
   }
 
   closeEventModal(e) {
     this.setState({openModal: false});
+    this.setState({openEventModal: false});
+    this.setState({title: ''});
+    this.setState({repeat: false});
   }
 
   onSubmit(e) {
@@ -92,6 +111,16 @@ export default class Calendar extends Component {
       parentDiv.innerHTML = parentDiv.innerHTML + '<div class="px-2 py-1 rounded-lg mt-1 overflow-hidden border"><p class="text-sm truncate leading-tight bg-green-200">'+ this.state.title +'</p></div>',
       that.setState({submitDone: true})
     );
+  }
+
+  onDelete(e) {
+    e.preventDefault();
+    axios.delete('http://localhost:4000/events/delete-event/' + this.state.selectedEventId)
+    .then((res) => {
+        window.location.reload()
+    }).catch((error) => {
+        console.log(error)
+    });
   }
 
   render() {
@@ -124,9 +153,7 @@ export default class Calendar extends Component {
       <div className="App" >
         <div className="bg-indigo-900 text-center py-4 lg:px-4">
           <div className="p-2 bg-indigo-800 items-center text-indigo-100 leading-none lg:rounded-full flex lg:inline-flex" role="alert">
-            <span className="font-semibold mr-2 text-left flex-auto">Welcome ! Click on </span>
-            <span className="flex rounded-full bg-indigo-500 uppercase px-2 py-1 text-xs font-bold mr-3">Time</span>
-            <span className="font-semibold mr-2 text-left flex-auto"> to add an event</span>
+            <span className="font-semibold mr-2 text-left flex-auto">Welcome ! Click on box to add event </span>
           </div>
         </div>
         <div>
@@ -160,8 +187,8 @@ export default class Calendar extends Component {
                                 {
                                   hours.map((hour, index) => {
                                     return (
-                                      <div key={index} className="px-4 pt-2 border-r border-b relative rounded-lg shadow mb-2">
-                                        <div onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }} className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white hover:bg-blue-200">{hour}</div>
+                                      <div key={index} className="px-4 pt-2 border-r border-b relative rounded-lg shadow mb-2 hover:bg-blue-200 cursor-pointer" onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }}>
+                                        <div className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white">{hour}</div>
                                         <div style={{height: '80px'}} className="overflow-y-auto mt-1" id={day+hour}>
                                           {
                                             this.state.events.map((event, index) => {
@@ -169,7 +196,7 @@ export default class Calendar extends Component {
                                               if(date.toString().split(' ')[2] === day.split(' ')[2] && event.time === hour){
                                                 return(
                                                   <div key={index} className="px-2 py-1 rounded-lg mt-1 overflow-hidden border">
-                                                    <p className="text-sm truncate leading-tight">{event.title}</p>
+                                                    <p id={event._id} data-checked={event.repeat} data-title={event.title} className="text-sm truncate leading-tight" onClick={e => { this.openEventItemModal(e, day, hour, event.title); e.preventDefault(); }}>{event.title}</p>
                                                   </div>
                                                 );
                                               } else {
@@ -193,7 +220,7 @@ export default class Calendar extends Component {
                 </div>
               </div>
 
-              {this.state.openModal === true ?
+              {this.state.openModal === true ||  this.state.openEventModal === true?
                 <div style={{backgroundColor: 'rgba(0, 0, 0, 0.8)'}} className="fixed z-40 top-0 right-0 left-0 bottom-0 h-full w-full">
                   <div className="p-4 max-w-xl mx-auto relative absolute left-0 right-0 overflow-hidden mt-24">
                     <div onClick={e => { this.closeEventModal(e); e.preventDefault(); }} className="shadow absolute right-0 top-0 w-10 h-10 rounded-full bg-white text-gray-500 hover:text-gray-800 inline-flex items-center justify-center cursor-pointer">
@@ -205,11 +232,11 @@ export default class Calendar extends Component {
 
                     <div className="shadow w-full rounded-lg bg-white overflow-hidden w-full block p-8">
 
-                      <h2 className="font-bold text-2xl mb-6 text-gray-800 border-b pb-2">Add Event Details</h2>
+                      <h2 className="font-bold text-2xl mb-6 text-gray-800 border-b pb-2">{this.state.openEventModal === true ? "Event Detail" : "Add Event Detail"}</h2>
 
                       <div className="mb-4">
                         <label className="text-gray-800 block mb-1 font-bold text-sm tracking-wide">Event title</label>
-                        <input onChange={e => { this.onChangeTitle(e); }} className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text"/>
+                        <input value={this.state.title} disabled={this.state.openEventModal ? true : false} onChange={e => { this.onChangeTitle(e); }} className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text"/>
                       </div>
 
                       <div className="mb-4">
@@ -222,6 +249,11 @@ export default class Calendar extends Component {
                         <input value={this.state.time} className="bg-gray-200 appearance-none border-2 border-gray-200 rounded-lg w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-blue-500" type="text" readOnly/>
                       </div>
 
+                      {this.state.openEventModal ?
+                        <label className="flex justify-start items-start">
+                          <div className={this.state.repeat === "true" ? 'select-none text-green-800' : 'select-none text-red-800'}>{this.state.repeat === "true" ? 'Repeats every day' : 'Do not repeat every day'}</div>
+                        </label>
+                      :
                       <label className="flex justify-start items-start">
                         <div className="bg-white border-2 rounded border-gray-400 w-6 h-6 flex flex-shrink-0 justify-center items-center mr-2 focus-within:border-blue-500">
                           <input onChange={e => { this.onChangeRepeat(e); }} type="checkbox" className="opacity-0 absolute"/>
@@ -229,14 +261,21 @@ export default class Calendar extends Component {
                         </div>
                         <div className="select-none">Repeats every day</div>
                       </label>
+                      }
 
                       <div className="mt-8 text-right">
                         <button onClick={e => { this.closeEventModal(e); e.preventDefault(); }} type="button" className="bg-white hover:bg-gray-100 text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm mr-2">
                           Cancel
                         </button>
-                        <button onClick={e => { this.onSubmit(e);}} type="button" className="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 px-4 border border-gray-700 rounded-lg shadow-sm">
-                          Save Event
-                        </button>
+                        {this.state.openEventModal ?
+                          <button onClick={e => { this.onDelete(e);}} type="button" className="bg-red-800 hover:bg-red-700 text-white font-semibold py-2 px-4 border border-red-700 rounded-lg shadow-sm">
+                            Delete Event
+                          </button>
+                          :
+                          <button onClick={e => { this.onSubmit(e);}} type="button" className="bg-green-800 hover:bg-green-700 text-white font-semibold py-2 px-4 border border-green-700 rounded-lg shadow-sm">
+                            Save Event
+                          </button>
+                        }
                       </div>
 
                     </div>
