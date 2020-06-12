@@ -1,8 +1,9 @@
-let express = require('express');
-let mongoose = require('mongoose');
-let cors = require('cors');
-let bodyParser = require('body-parser');
-let dbConfig = require('./database/db');
+const path = require('path');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const dbConfig = require('./database/db');
 
 // Express Route
 const eventRoute = require('./routes/event.route')
@@ -21,6 +22,7 @@ mongoose.connect(dbConfig.db, {
 )
 
 const app = express();
+app.use(express.static(path.join(__dirname, 'client/build')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
@@ -30,7 +32,7 @@ app.use('/events', eventRoute)
 
 
 // PORT
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 8080;
 const server = app.listen(port, () => {
   console.log('Connected to port ' + port)
 })

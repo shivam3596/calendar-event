@@ -39,7 +39,7 @@ export default class Calendar extends Component {
       let newDateTime = date.getTime();
       cookies.set('visitorId', newDateTime, { path: '/' });
     }
-    axios.get('http://localhost:4000/events/visitor/' + visitorId).then(res => {
+    axios.get('/events/visitor/' + visitorId).then(res => {
       this.setState({
         events: res.data
       });
@@ -106,7 +106,7 @@ export default class Calendar extends Component {
     };
     let dateTimeElement = this.state.date + this.state.time;
     let parentDiv = document.getElementById(dateTimeElement);
-    axios.post('http://localhost:4000/events/create-event', eventObject).then(res =>
+    axios.post('/events/create-event', eventObject).then(res =>
       that.closeEventModal(),
       parentDiv.innerHTML = parentDiv.innerHTML + '<div class="px-2 py-1 rounded-lg mt-1 overflow-hidden border"><p class="text-sm truncate leading-tight bg-green-200">'+ this.state.title +'</p></div>',
       that.setState({submitDone: true})
@@ -115,7 +115,7 @@ export default class Calendar extends Component {
 
   onDelete(e) {
     e.preventDefault();
-    axios.delete('http://localhost:4000/events/delete-event/' + this.state.selectedEventId)
+    axios.delete('/events/delete-event/' + this.state.selectedEventId)
     .then((res) => {
         window.location.reload()
     }).catch((error) => {
@@ -142,7 +142,7 @@ export default class Calendar extends Component {
       if(targetElement !== null){
         targetElement.innerHTML = document.getElementById(data).innerHTML;
         document.getElementById(data).innerHTML = '';
-        axios.put('http://localhost:4000/events/update-event/' + movingId, {date: givenDay, time: givenHour})
+        axios.put('/events/update-event/' + movingId, {date: givenDay, time: givenHour})
         .then((res) => {
           alert('Event Updated')
         }).catch((error) => {
@@ -219,7 +219,7 @@ export default class Calendar extends Component {
                                   hours.map((hour, index) => {
                                     return (
                                       <div key={index} className="px-4 pt-2 border-r border-b relative rounded-lg shadow mb-2 hover:bg-blue-200 cursor-pointer" onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }}>
-                                        <div className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white">{hour}</div>
+                                       <div className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white">{hour}</div>
                                         <div style={{height: '80px'}} data-time={hour} data-date={day} className="overflow-y-auto mt-1" id={day+hour} onDrop={e => { this.drop(e, day, hour); }} onDragOver={ e=> { this.allowDrop(e);}} onDragStart={e=> { this.drag(e, day, hour)}} draggable="true" >
                                           {
                                             this.state.events.map((event, index) => {
@@ -235,6 +235,7 @@ export default class Calendar extends Component {
                                               }
                                             })
                                           }
+
                                         </div>
                                       </div>
                                     );
@@ -292,7 +293,6 @@ export default class Calendar extends Component {
                         <div className="select-none">Repeats every day</div>
                       </label>
                       }
-
                       <div className="mt-8 text-right">
                         <button onClick={e => { this.closeEventModal(e); e.preventDefault(); }} type="button" className="bg-white hover:bg-gray-100 text-gray-700 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm mr-2">
                           Cancel
