@@ -218,8 +218,8 @@ export default class Calendar extends Component {
                                 {
                                   hours.map((hour, index) => {
                                     return (
-                                      <div key={index} className="px-4 pt-2 border-r border-b relative rounded-lg shadow mb-2 hover:bg-blue-200 cursor-pointer" onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }}>
-                                       <div className="inline-flex w-12 h-6 items-center justify-center rounded-full cursor-pointer text-center leading-none bg-blue-500 text-white">{hour}</div>
+                                      <div key={index} className="pt-2 border-r border-b relative rounded-lg shadow mb-2 hover:bg-blue-200 cursor-pointer" onClick={e => { this.openEventModal(e, day, hour); e.preventDefault(); }}>
+                                       <div className="inline-flex items-center justify-center text-gray-600">{hour}</div>
                                         <div style={{height: '80px'}} data-time={hour} data-date={day} className="overflow-y-auto mt-1" id={day+hour} onDrop={e => { this.drop(e, day, hour); }} onDragOver={ e=> { this.allowDrop(e);}} onDragStart={e=> { this.drag(e, day, hour)}} draggable="true" >
                                           {
                                             this.state.events.map((event, index) => {
